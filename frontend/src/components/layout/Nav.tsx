@@ -88,12 +88,12 @@ export function Nav({ onOpenAuth, links = NAV_LINKS }: NavProps) {
           className="flex items-center gap-2.5"
           aria-label="OpenSource Assist home"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent shadow-accent-glow">
-            <svg viewBox="0 0 24 24" className="size-5 text-on-accent" aria-hidden="true">
-              <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="2.4" />
-              <path d="M8.5 11.5 6 19l6-3 6 3-2.5-7.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" />
-            </svg>
-          </span>
+          <img
+            src="/cat-logo.png"
+            alt=""
+            aria-hidden="true"
+            className="size-8 rounded-lg object-cover"
+          />
           <span className="text-base font-bold tracking-tight">OpenSource Assist</span>
         </a>
 

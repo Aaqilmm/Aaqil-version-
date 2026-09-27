@@ -48,11 +48,7 @@ export function Footer({
       <footer className={cn('border-t border-border bg-surface', className)}>
         <div className="mx-auto flex max-w-[1240px] flex-col items-center justify-between gap-4 px-5 py-6 sm:flex-row sm:px-8">
           <a href={brandHref} className="flex items-center gap-2.5" aria-label={`${brandName} home`}>
-            <svg viewBox="0 0 32 32" className="h-6 w-6" aria-hidden="true">
-              <rect width="32" height="32" rx="4" fill="#ff8c00" />
-              <circle cx="16" cy="14" r="6.5" fill="none" stroke="#0d1117" strokeWidth="3.5" />
-              <rect x="13" y="20" width="6" height="6" rx="1" fill="#0d1117" />
-            </svg>
+            <img src="/cat-logo.png" alt="" aria-hidden="true" className="h-7 w-7 rounded-lg object-cover" />
             <span className="text-sm font-semibold tracking-tight">{brandName}</span>
           </a>
           <p className="text-xs text-muted-foreground">{copyright}</p>
@@ -78,11 +74,7 @@ export function Footer({
         <div className="grid grid-cols-1 gap-10 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
           <div>
             <a href={brandHref} className="flex items-center gap-2.5" aria-label={`${brandName} home`}>
-              <svg viewBox="0 0 32 32" className="h-7 w-7" aria-hidden="true">
-                <rect width="32" height="32" rx="4" fill="#ff8c00" />
-                <circle cx="16" cy="14" r="6.5" fill="none" stroke="#0d1117" strokeWidth="3.5" />
-                <rect x="13" y="20" width="6" height="6" rx="1" fill="#0d1117" />
-              </svg>
+              <img src="/cat-logo.png" alt="" aria-hidden="true" className="h-7 w-7 rounded-lg object-cover" />
               <span className="text-[15px] font-semibold tracking-tight">{brandName}</span>
             </a>
             {description && (
