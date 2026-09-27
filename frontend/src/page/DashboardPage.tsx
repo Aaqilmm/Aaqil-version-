@@ -26,6 +26,7 @@ import { useAuthStore } from '@/lib/auth-store'
 import { cn } from '@/lib/utils'
 import { RoadmapPage } from '@/components/roadmap/RoadmapPage'
 import { ExploreSection } from '@/components/dashboard/ExploreSection'
+import LearningSection from '@/components/LearningSection'
 
 interface DashboardPageProps {
   onLogout: () => void
@@ -252,18 +253,11 @@ export default function DashboardPage({ onLogout }: DashboardPageProps) {
     <div className="flex h-full flex-col">
       {/* Brand */}
       <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent shadow-accent-glow">
-          <svg viewBox="0 0 24 24" className="size-5 text-on-accent" aria-hidden="true">
-            <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="2.4" />
-            <path
-              d="M8.5 11.5 6 19l6-3 6 3-2.5-7.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.4"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
+        <img
+          src="/cat-logo.png"
+          alt="OpenSource Assist"
+          className="size-8 rounded-lg object-cover"
+        />
         <span className="text-sm font-bold tracking-tight">OpenSource Assist</span>
       </div>
 
@@ -356,6 +350,8 @@ export default function DashboardPage({ onLogout }: DashboardPageProps) {
         <main className="mx-auto w-full max-w-[1200px] flex-1 p-4 sm:p-6">
           {section === 'overview' ? (
             <OverviewSection />
+          ) : section === 'learning' ? (
+            <LearningSection />
           ) : section === 'roadmap' ? (
             <RoadmapPage embedded />
           ) : section === 'explore' ? (
