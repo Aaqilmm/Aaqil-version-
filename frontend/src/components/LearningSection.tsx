@@ -89,7 +89,11 @@ export default function LearningSection() {
     setPillar("learn");
   }
   function completeStep(createdBranch?: string) {
-    if (createdBranch) setBranch(createdBranch);
+    if (createdBranch) {
+      setBranch(createdBranch);
+      setNotice(`Switched to branch: ${createdBranch}`);
+      setTimeout(() => setNotice(""), 2500);
+    }
     if (step + 1 < tutorial.steps.length) {
       setStep((value) => value + 1);
       return;
@@ -97,6 +101,8 @@ export default function LearningSection() {
     setCompleted((value) =>
       value.includes(tutorial.id) ? value : [...value, tutorial.id],
     );
+    setNotice(`Tutorial completed: ${tutorial.title}`);
+    setTimeout(() => setNotice(""), 3000);
     setLessonComplete(true);
   }
   function goToNextTutorial() {
