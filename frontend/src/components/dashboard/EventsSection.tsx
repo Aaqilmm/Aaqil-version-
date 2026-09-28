@@ -1,11 +1,28 @@
-import { useState } from 'react'
-import { CalendarDays, Edit3, MapPin, Monitor, Plus, Trash2, X } from 'lucide-react'
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
+import { useEffect, useState } from 'react'
+import {
+  CalendarDays,
+  Edit3,
+  MapPin,
+  Monitor,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react'
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  EmptyState,
+  Input,
+} from '@/components/ui'
 
-type EventMode = 'Online' | 'Offline'
-type EventSort = 'date-asc' | 'date-desc' | 'online-first' | 'offline-first'
+export type EventMode = 'Online' | 'Offline'
+export type EventSort = 'date-asc' | 'date-desc' | 'online-first' | 'offline-first'
 
-interface EventItem {
+export interface EventItem {
   id: number
   name: string
   type: string
@@ -15,6 +32,8 @@ interface EventItem {
   location: string
   organizer: string
 }
+
+const STORAGE_KEY = 'osa_dashboard_events'
 
 const initialEvents: EventItem[] = [
   {
@@ -49,19 +68,45 @@ const initialEvents: EventItem[] = [
   },
 ]
 
-const formatDate = (date: string) =>
-  new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date(`${date}T00:00:00`))
+export const formatDate = (date: string) => {
+  if (!date || !date.trim()) return 'Date TBD'
+  const parsed = new Date(`${date}T00:00:00`)
+  return isNaN(parsed.getTime())
+    ? date
+    : new Intl.DateTimeFormat('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }).format(parsed)
+}
 
-export default function EventsSection() {
-  const [events, setEvents] = useState(initialEvents)
+const readStoredEvents = (): EventItem[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return saved ? (JSON.parse(saved) as EventItem[]) : initialEvents
+  } catch {
+    return initialEvents
+  }
+}
+
+const saveStoredEvents = (events: EventItem[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(events))
+  } catch {
+    /* storage may be unavailable */
+  }
+}
+
+export function EventsSection() {
+  const [events, setEvents] = useState<EventItem[]>(readStoredEvents)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [creatingNew, setCreatingNew] = useState(false)
   const [draft, setDraft] = useState<EventItem | null>(null)
   const [sortOrder, setSortOrder] = useState<EventSort>('date-asc')
+
+  useEffect(() => {
+    saveStoredEvents(events)
+  }, [events])
 
   const sortedEvents = [...events].sort((first, second) => {
     if (sortOrder === 'online-first' && first.mode !== second.mode) {
@@ -78,7 +123,16 @@ export default function EventsSection() {
   const startCreating = () => {
     setEditingId(null)
     setCreatingNew(true)
-    setDraft({ id: 0, name: '', type: 'Hackathon', date: '', time: '', mode: 'Online', location: '', organizer: '' })
+    setDraft({
+      id: 0,
+      name: '',
+      type: 'Hackathon',
+      date: '',
+      time: '',
+      mode: 'Online',
+      location: '',
+      organizer: '',
+    })
   }
 
   const startEditing = (event: EventItem) => {
@@ -101,7 +155,9 @@ export default function EventsSection() {
         return [...current, { ...draft, id }]
       })
     } else {
-      setEvents((current) => current.map((event) => (event.id === draft.id ? draft : event)))
+      setEvents((current) =>
+        current.map((event) => (event.id === draft.id ? draft : event)),
+      )
     }
     cancelEditing()
   }
@@ -114,19 +170,37 @@ export default function EventsSection() {
 
   return (
     <div className="animate-fade-up space-y-6">
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="eyebrow">Admin / Events</p>
+          <p className="eyebrow">Community / Events</p>
           <h1 className="section-h2">Events</h1>
           <div className="section-underline" aria-hidden="true" />
-          <p className="section-body">Review and manage the open-source events published for contributors.</p>
+          <p className="section-body">
+            Review and discover open-source community events published for contributors.
+          </p>
         </div>
-        <Button type="button" className="self-start sm:self-auto" onClick={startCreating}>
-          <Plus aria-hidden="true" />
+        <Button
+          type="button"
+          className="self-start sm:self-auto gap-2"
+          onClick={startCreating}
+        >
+          <Plus className="size-4" aria-hidden="true" />
           Add Event
         </Button>
       </div>
 
+      {/* Placeholder / Demo Notice */}
+      <div className="flex items-center gap-2.5 rounded-lg border border-accent/20 bg-accent/5 px-4 py-2.5 text-xs text-muted-foreground">
+        <Badge variant="accent" className="shrink-0 text-[10px]">
+          Preview Mode
+        </Badge>
+        <span className="flex-1">
+          Demo events are stored in local browser state. Real-time community events backend API integration is coming soon.
+        </span>
+      </div>
+
+      {/* Main Events Card */}
       <Card className="rounded-xl">
         <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between gap-4">
@@ -140,7 +214,7 @@ export default function EventsSection() {
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-3 p-4 sm:p-5">
+        <CardContent className="space-y-4 p-4 sm:p-5">
           {creatingNew && draft && (
             <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
               <EventEditor
@@ -153,11 +227,14 @@ export default function EventsSection() {
               />
             </div>
           )}
+
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <label htmlFor="events-sort" className="text-sm font-medium">Sort events</label>
+            <label htmlFor="events-sort" className="font-mono text-xs text-muted-foreground">
+              Sort events
+            </label>
             <select
               id="events-sort"
-              className="input-field sm:max-w-xs"
+              className="input-field h-9 text-xs sm:max-w-xs"
               value={sortOrder}
               onChange={(event) => setSortOrder(event.target.value as EventSort)}
             >
@@ -167,15 +244,24 @@ export default function EventsSection() {
               <option value="offline-first">Offline first</option>
             </select>
           </div>
+
           {events.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border px-6 py-12 text-center">
-              <CalendarDays className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
-              <p className="mt-3 text-sm font-semibold">No events available</p>
-              <p className="mt-1 text-sm text-muted-foreground">Published events will appear here.</p>
-            </div>
+            <EmptyState
+              icon={CalendarDays}
+              title="No events available"
+              description="Published community events will appear here once scheduled."
+              action={
+                <Button size="sm" onClick={startCreating} className="gap-1.5">
+                  <Plus className="size-4" /> Add your first event
+                </Button>
+              }
+            />
           ) : (
             sortedEvents.map((event) => (
-              <div key={event.id} className="rounded-lg border border-border bg-background p-4 sm:p-5">
+              <div
+                key={event.id}
+                className="rounded-lg border border-border bg-background p-4 sm:p-5 transition-all hover:border-accent/40"
+              >
                 {editingId === event.id && draft ? (
                   <EventEditor
                     draft={draft}
@@ -187,27 +273,32 @@ export default function EventsSection() {
                   />
                 ) : (
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="min-w-0">
+                    <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h2 className="text-base font-semibold">{event.name}</h2>
-                        <span className="chip-neutral">{event.type}</span>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {event.type}
+                        </Badge>
                       </div>
-                      <p className="mt-1 text-sm text-muted-foreground">Organized by {event.organizer}</p>
-                      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
+                        Organized by {event.organizer}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                           <CalendarDays className="size-3.5" aria-hidden="true" />
                           {formatDate(event.date)} at {event.time} IST
                         </span>
                         <span className="flex items-center gap-1.5">
                           {event.mode === 'Online' ? (
-                            <Monitor className="size-3.5" aria-hidden="true" />
+                            <Monitor className="size-3.5 text-accent" aria-hidden="true" />
                           ) : (
-                            <MapPin className="size-3.5" aria-hidden="true" />
+                            <MapPin className="size-3.5 text-accent" aria-hidden="true" />
                           )}
                           {event.mode === 'Online' ? 'Online' : event.location}
                         </span>
                       </div>
                     </div>
+
                     <div className="flex shrink-0 items-center gap-2">
                       <Button
                         type="button"
@@ -215,8 +306,9 @@ export default function EventsSection() {
                         size="sm"
                         onClick={() => startEditing(event)}
                         aria-label={`Edit ${event.name}`}
+                        className="gap-1.5"
                       >
-                        <Edit3 aria-hidden="true" />
+                        <Edit3 className="size-3.5" aria-hidden="true" />
                         Edit
                       </Button>
                       <Button
@@ -225,9 +317,9 @@ export default function EventsSection() {
                         size="sm"
                         onClick={() => deleteEvent(event.id)}
                         aria-label={`Delete ${event.name}`}
-                        className="text-muted-foreground hover:border-accent/70 hover:text-accent-text"
+                        className="gap-1.5 text-muted-foreground hover:border-accent/70 hover:text-accent-text"
                       >
-                        <Trash2 aria-hidden="true" />
+                        <Trash2 className="size-3.5" aria-hidden="true" />
                         Delete
                       </Button>
                     </div>
@@ -257,7 +349,8 @@ function EventEditor({
   heading: string
   submitLabel: string
 }) {
-  const update = (field: keyof EventItem, value: string) => onChange({ ...draft, [field]: value })
+  const update = (field: keyof EventItem, value: string) =>
+    onChange({ ...draft, [field]: value })
 
   return (
     <form
@@ -267,8 +360,10 @@ function EventEditor({
       }}
       className="space-y-4"
     >
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="font-mono text-sm font-semibold">{heading}</h2>
+      <div className="flex items-center justify-between gap-3 border-b border-border pb-3">
+        <h2 className="font-mono text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+          {heading}
+        </h2>
         <button
           type="button"
           onClick={onCancel}
@@ -278,62 +373,138 @@ function EventEditor({
           <X className="size-4" aria-hidden="true" />
         </button>
       </div>
+
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="space-y-1.5 text-sm font-medium md:col-span-2">
-          Event name
-          <input className="input-field" value={draft.name} onChange={(event) => update('name', event.target.value)} required />
-        </label>
-        <label className="space-y-1.5 text-sm font-medium">
-          Organization
-          <input className="input-field" value={draft.organizer} onChange={(event) => update('organizer', event.target.value)} required />
-        </label>
-        <label className="space-y-1.5 text-sm font-medium">
-          Event type
-          <select className="input-field" value={draft.type} onChange={(event) => update('type', event.target.value)}>
-            {['Hackathon', 'Workshop', 'Meetup', 'Conference', 'Webinar', 'Coding Contest', 'Open Source Program', 'Other'].map(
-              (type) => <option key={type}>{type}</option>,
-            )}
+        <div className="space-y-1.5 md:col-span-2">
+          <label className="text-xs font-mono font-medium text-muted-foreground">
+            Event name
+          </label>
+          <Input
+            value={draft.name}
+            onChange={(event) => update('name', event.target.value)}
+            placeholder="e.g. Open Source Sprint 2026"
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-mono font-medium text-muted-foreground">
+            Organization
+          </label>
+          <Input
+            value={draft.organizer}
+            onChange={(event) => update('organizer', event.target.value)}
+            placeholder="e.g. FOSS United"
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-mono font-medium text-muted-foreground">
+            Event type
+          </label>
+          <select
+            className="input-field h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground transition-all duration-200 focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            value={draft.type}
+            onChange={(event) => update('type', event.target.value)}
+          >
+            {[
+              'Hackathon',
+              'Workshop',
+              'Meetup',
+              'Conference',
+              'Webinar',
+              'Coding Contest',
+              'Open Source Program',
+              'Other',
+            ].map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
           </select>
-        </label>
-        <label className="space-y-1.5 text-sm font-medium">
-          Date
-          <input className="input-field" type="date" value={draft.date} onChange={(event) => update('date', event.target.value)} required />
-        </label>
-        <label className="space-y-1.5 text-sm font-medium">
-          Time (IST)
-          <input className="input-field" type="time" value={draft.time} onChange={(event) => update('time', event.target.value)} required />
-        </label>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-mono font-medium text-muted-foreground">
+            Date
+          </label>
+          <Input
+            type="date"
+            value={draft.date}
+            onChange={(event) => update('date', event.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-mono font-medium text-muted-foreground">
+            Time (IST)
+          </label>
+          <Input
+            type="time"
+            value={draft.time}
+            onChange={(event) => update('time', event.target.value)}
+            required
+          />
+        </div>
+
         <fieldset className="space-y-2 md:col-span-2">
-          <legend className="text-sm font-medium">Event mode</legend>
+          <legend className="text-xs font-mono font-medium text-muted-foreground">
+            Event mode
+          </legend>
           <div className="flex gap-2">
             {(['Online', 'Offline'] as EventMode[]).map((mode) => (
-              <button
+              <Button
                 key={mode}
                 type="button"
-                onClick={() => onChange({ ...draft, mode, location: mode === 'Online' ? '' : draft.location })}
-                className={`rounded-md border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                  draft.mode === mode
-                    ? 'border-accent bg-accent/15 text-accent-text'
-                    : 'border-border text-muted-foreground hover:border-accent/60 hover:text-foreground'
-                }`}
-                aria-pressed={draft.mode === mode}
+                variant={draft.mode === mode ? 'default' : 'secondary'}
+                size="sm"
+                onClick={() =>
+                  onChange({
+                    ...draft,
+                    mode,
+                    location: mode === 'Online' ? '' : draft.location,
+                  })
+                }
+                className="gap-1.5 px-4"
               >
+                {mode === 'Online' ? (
+                  <Monitor className="size-3.5" />
+                ) : (
+                  <MapPin className="size-3.5" />
+                )}
                 {mode}
-              </button>
+              </Button>
             ))}
           </div>
         </fieldset>
+
         {draft.mode === 'Offline' && (
-          <label className="space-y-1.5 text-sm font-medium md:col-span-2">
-            Location
-            <input className="input-field" value={draft.location} onChange={(event) => update('location', event.target.value)} required />
-          </label>
+          <div className="space-y-1.5 md:col-span-2">
+            <label className="text-xs font-mono font-medium text-muted-foreground">
+              Location
+            </label>
+            <Input
+              value={draft.location}
+              onChange={(event) => update('location', event.target.value)}
+              placeholder="e.g. Bengaluru Tech Hub"
+              required
+            />
+          </div>
         )}
       </div>
+
       <div className="flex justify-end gap-2 border-t border-border pt-4">
-        <Button type="button" variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" size="sm">{submitLabel}</Button>
+        <Button type="button" variant="secondary" size="sm" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" size="sm">
+          {submitLabel}
+        </Button>
       </div>
     </form>
   )
 }
+
+export default EventsSection
