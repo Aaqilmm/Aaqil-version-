@@ -26,7 +26,7 @@ import { useAuthStore } from '@/lib/auth-store'
 import { cn } from '@/lib/utils'
 import { RoadmapPage } from '@/components/roadmap/RoadmapPage'
 import { ExploreSection } from '@/components/dashboard/ExploreSection'
-import LearningSection from '@/components/LearningSection'
+import { LearningSection } from '@/components/learning'
 
 interface DashboardPageProps {
   onLogout: () => void

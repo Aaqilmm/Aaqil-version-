@@ -1,11 +1,5 @@
 import { useState } from 'react'
-
-type TutorialStepActionProps = {
-  tutorialId: string
-  step: number
-  target: string
-  onComplete: (createdBranch?: string) => void
-}
+import type { TutorialStepActionProps } from './types'
 
 const actionLabels: Record<string, string> = {
   issueContinue: 'I understand the issue',
@@ -40,7 +34,7 @@ function getActionLabel(tutorialId: string, step: number, target: string) {
   return actionLabels[target] || 'Complete this action'
 }
 
-export default function TutorialStepAction({
+export function LearningTutorialStepAction({
   tutorialId,
   step,
   target,
@@ -64,9 +58,10 @@ export default function TutorialStepAction({
   }
 
   if (target === 'termCmd') {
-    const expectedCommand = tutorialId === 'push'
-      ? 'git push origin feature/login-validation'
-      : 'git pull origin main'
+    const expectedCommand =
+      tutorialId === 'push'
+        ? 'git push origin feature/login-validation'
+        : 'git pull origin main'
     return (
       <input
         aria-label="Git command"
@@ -141,3 +136,5 @@ export default function TutorialStepAction({
     </button>
   )
 }
+
+export default LearningTutorialStepAction
