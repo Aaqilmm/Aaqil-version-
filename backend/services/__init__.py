@@ -15,6 +15,10 @@ from backend.services import github_sync_service
 from backend.services import project_service
 from backend.services import contributor_service
 from backend.services import event_service
+from backend.services import user_service
+from backend.services import otp_service
+from backend.services import email_service
+from backend.services import roadmap_service
 
 __all__ = [
     "ScoringStrategy",
@@ -35,6 +39,10 @@ __all__ = [
     "project_service",
     "contributor_service",
     "event_service",
+    "user_service",
+    "otp_service",
+    "email_service",
+    "roadmap_service",
 ]
 
 

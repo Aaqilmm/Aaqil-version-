@@ -31,6 +31,31 @@ from backend.schemas.events import (
     EventCreate,
     EventResponse,
 )
+from backend.schemas.users import (
+    UserCreate,
+    UserLogin,
+    UserLoginResponse,
+    UserResponse,
+    UserUpdate,
+)
+from backend.schemas.otp import (
+    OTPRequest,
+    OTPResponse,
+    OTPVerify,
+)
+from backend.schemas.roadmaps import (
+    RoadmapCreate,
+    RoadmapListResponse,
+    RoadmapResponse,
+    RoadmapUpdate,
+    StepCreate,
+    StepResponse,
+    StepUpdate,
+    ProgressCreate,
+    ProgressResponse,
+    ProgressUpdate,
+    RoadmapProgressSummary,
+)
 
 __all__ = [
     "RepoSearchFilter",
@@ -54,6 +79,25 @@ __all__ = [
     "ContributorSyncResponse",
     "EventCreate",
     "EventResponse",
+    "UserCreate",
+    "UserLogin",
+    "UserLoginResponse",
+    "UserResponse",
+    "UserUpdate",
+    "OTPRequest",
+    "OTPResponse",
+    "OTPVerify",
+    "RoadmapCreate",
+    "RoadmapListResponse",
+    "RoadmapResponse",
+    "RoadmapUpdate",
+    "StepCreate",
+    "StepResponse",
+    "StepUpdate",
+    "ProgressCreate",
+    "ProgressResponse",
+    "ProgressUpdate",
+    "RoadmapProgressSummary",
 ]
 
 

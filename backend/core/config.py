@@ -96,6 +96,41 @@ class Settings(BaseSettings):
         description="Gemini LLM model identifier for AI agents.",
     )
 
+    # SMTP Configuration
+    SMTP_HOST: str = Field(
+        default="smtp.gmail.com",
+        description="SMTP server hostname.",
+    )
+    SMTP_PORT: int = Field(
+        default=587,
+        description="SMTP server port.",
+    )
+    SMTP_USERNAME: str = Field(
+        default="",
+        description="SMTP login username.",
+    )
+    SMTP_PASSWORD: str = Field(
+        default="",
+        description="SMTP login password / app password.",
+    )
+    MAIL_FROM: str = Field(
+        default="",
+        description="Sender email address for outgoing mail.",
+    )
+    SMTP_START_TLS: bool = Field(
+        default=True,
+        description="Use STARTTLS after connecting.",
+    )
+
+    # JWT / OTP
+    JWT_SECRET_KEY: str = Field(
+        default="replace-with-a-long-random-secret-for-jwt-signing",
+        description="Secret key for JWT signing.",
+    )
+    JWT_ALGORITHM: str = Field(default="HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=120)
+    OTP_EXPIRE_MINUTES: int = Field(default=5)
+
     # PostgreSQL Database Configuration (GitHub Pipeline & Events)
     POSTGRES_HOST: str = Field(
         default="localhost",
@@ -130,6 +165,24 @@ class Settings(BaseSettings):
     GITHUB_MAX_RETRIES: int = Field(
         default=3,
         description="Maximum retries for failed GitHub API requests.",
+    )
+
+    # Airflow REST API
+    AIRFLOW_API_URL: str = Field(
+        default="http://localhost:8080",
+        description="Base URL for the Airflow REST API.",
+    )
+    AIRFLOW_API_USERNAME: str | None = Field(
+        default=None,
+        description="Optional Airflow API basic-auth username.",
+    )
+    AIRFLOW_API_PASSWORD: str | None = Field(
+        default=None,
+        description="Optional Airflow API basic-auth password.",
+    )
+    AIRFLOW_DAG_ID: str = Field(
+        default="github_sync_weekly",
+        description="DAG ID triggered by the manual sync control.",
     )
 
     @property

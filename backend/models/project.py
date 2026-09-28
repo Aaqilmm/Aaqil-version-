@@ -1,10 +1,7 @@
 """Project (GitHub repository) ORM model."""
-
 from __future__ import annotations
-
 from datetime import datetime
 from typing import TYPE_CHECKING
-
 from sqlalchemy import BigInteger, Boolean, DateTime, Integer, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
