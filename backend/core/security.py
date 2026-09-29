@@ -1,43 +1,39 @@
-"""JWT token creation and verification."""
+"""Password and one-time-code security helpers."""
 
-from __future__ import annotations
+import hashlib
+import hmac
 
-import uuid
-from datetime import datetime, timedelta, timezone
+import bcrypt
+from passlib.context import CryptContext
 
-import jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncSession
+from backend.core.config import settings
 
-from backend.core.database import get_db
+# Fix passlib bug with bcrypt >= 4.0.0 looking for bcrypt.__about__.__version__
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type(
+        "about", (), {"__version__": getattr(bcrypt, "__version__", "4.0.0")}
+    )()
 
-SECRET_KEY = "open-source-assist-jwt-secret"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24
-
-_bearer = HTTPBearer(auto_error=False)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def create_access_token(user_id: uuid.UUID, email: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-    payload = {"sub": str(user_id), "email": email, "exp": expire}
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+def hash_password(password: str) -> str:
+    """Hash a password with bcrypt; the plaintext never reaches persistence."""
+    return pwd_context.hash(password)
 
 
-def decode_access_token(token: str) -> dict:
-    try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verify a plaintext password against a bcrypt hash."""
+    return pwd_context.verify(password, password_hash)
 
 
-async def get_current_user_id(
-    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
-) -> uuid.UUID:
-    if not credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    data = decode_access_token(credentials.credentials)
-    return uuid.UUID(data["sub"])
+def hash_otp(otp: str) -> str:
+    """Hash an OTP before persistence using a server-held secret."""
+    return hmac.new(
+        settings.JWT_SECRET_KEY.encode(), otp.encode(), hashlib.sha256
+    ).hexdigest()
+
+
+def verify_otp(otp: str, otp_hash: str) -> bool:
+    """Constant-time comparison for a submitted OTP."""
+    return hmac.compare_digest(hash_otp(otp), otp_hash)

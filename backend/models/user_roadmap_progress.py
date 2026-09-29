@@ -15,7 +15,7 @@ from backend.core.database import Base
 if TYPE_CHECKING:
     from backend.models.roadmap import Roadmap
     from backend.models.roadmap_step import RoadmapStep
-    from backend.models.user import User
+    from backend.models.user_model import User
 
 
 class UserRoadmapProgress(Base):

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, EmailStr, Field
 
-from backend.models.otp import OTPPurpose
+from backend.models.otp_model import OTPPurpose
 
 
 class OTPRequest(BaseModel):

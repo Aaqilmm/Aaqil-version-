@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   CalendarDays,
   Edit3,
-  ExternalLink,
   MapPin,
   Monitor,
   Plus,
@@ -20,62 +19,54 @@ import {
   Input,
 } from '@/components/ui'
 
-const API = '/api/v1'
-
 export type EventMode = 'Online' | 'Offline'
 export type EventSort = 'date-asc' | 'date-desc' | 'online-first' | 'offline-first'
 
 export interface EventItem {
   id: number
-  company_organization: string
-  event_type: string
-  description: string
-  mode: string
-  location: string | null
-  event_date: string
-  event_time: string
-  application_url: string
-  created_at: string
-}
-
-interface EventDraft {
   name: string
-  organizer: string
   type: string
-  description: string
   date: string
   time: string
   mode: EventMode
   location: string
-  application_url: string
+  organizer: string
 }
 
-const EMPTY_DRAFT: EventDraft = {
-  name: '',
-  organizer: '',
-  type: 'Hackathon',
-  description: '',
-  date: '',
-  time: '',
-  mode: 'Online',
-  location: '',
-  application_url: '',
-}
+const STORAGE_KEY = 'osa_dashboard_events'
 
-const modeToApi = (m: EventMode) => (m === 'Online' ? 'online' : 'in-person')
-const modeFromApi = (m: string): EventMode =>
-  m.toLowerCase() === 'online' ? 'Online' : 'Offline'
-
-const displayName = (ev: EventItem) => ev.company_organization
-const displayOrganizer = (ev: EventItem) => {
-  const desc = ev.description ?? ''
-  const match = desc.match(/^Organized by (.+?)(?:\n|$)/)
-  return match ? match[1] : ''
-}
-const displayDescription = (ev: EventItem) => {
-  const desc = ev.description ?? ''
-  return desc.replace(/^Organized by .+?\n?/, '').trim()
-}
+const initialEvents: EventItem[] = [
+  {
+    id: 1,
+    name: 'Open Source Sprint 2026',
+    type: 'Hackathon',
+    date: '2026-10-12',
+    time: '10:00',
+    mode: 'Online',
+    location: '',
+    organizer: 'Open Source India',
+  },
+  {
+    id: 2,
+    name: 'Community Maintainers Meetup',
+    type: 'Meetup',
+    date: '2026-11-04',
+    time: '18:30',
+    mode: 'Offline',
+    location: 'Bengaluru Tech Hub',
+    organizer: 'FOSS United',
+  },
+  {
+    id: 3,
+    name: 'Contributing to Your First Project',
+    type: 'Workshop',
+    date: '2026-11-18',
+    time: '15:00',
+    mode: 'Online',
+    location: '',
+    organizer: 'Code for Everyone',
+  },
+]
 
 export const formatDate = (date: string) => {
   if (!date || !date.trim()) return 'Date TBD'
@@ -89,83 +80,65 @@ export const formatDate = (date: string) => {
       }).format(parsed)
 }
 
-function eventToDraft(ev: EventItem): EventDraft {
-  return {
-    name: displayName(ev),
-    organizer: displayOrganizer(ev),
-    type: ev.event_type,
-    description: displayDescription(ev),
-    date: ev.event_date,
-    time: ev.event_time.slice(0, 5),
-    mode: modeFromApi(ev.mode),
-    location: ev.location ?? '',
-    application_url: ev.application_url,
+const readStoredEvents = (): EventItem[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return saved ? (JSON.parse(saved) as EventItem[]) : initialEvents
+  } catch {
+    return initialEvents
   }
 }
 
-function draftToPayload(d: EventDraft) {
-  const descParts = [`Organized by ${d.organizer}`]
-  if (d.description.trim()) descParts.push(d.description.trim())
-  return {
-    company_organization: d.name,
-    event_type: d.type,
-    description: descParts.join('\n'),
-    mode: modeToApi(d.mode),
-    location: d.mode === 'Online' ? null : d.location || null,
-    event_date: d.date,
-    event_time: d.time,
-    application_url: d.application_url,
+const saveStoredEvents = (events: EventItem[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(events))
+  } catch {
+    /* storage may be unavailable */
   }
 }
 
 export function EventsSection() {
-  const [events, setEvents] = useState<EventItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [events, setEvents] = useState<EventItem[]>(readStoredEvents)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [creatingNew, setCreatingNew] = useState(false)
-  const [draft, setDraft] = useState<EventDraft | null>(null)
+  const [draft, setDraft] = useState<EventItem | null>(null)
   const [sortOrder, setSortOrder] = useState<EventSort>('date-asc')
-  const [error, setError] = useState('')
-
-  const fetchEvents = useCallback(async () => {
-    try {
-      const res = await fetch(`${API}/events`)
-      if (!res.ok) throw new Error('Failed to load events')
-      setEvents(await res.json())
-      setError('')
-    } catch {
-      setError('Could not load events from server.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
 
   useEffect(() => {
-    fetchEvents()
-  }, [fetchEvents])
+    saveStoredEvents(events)
+  }, [events])
 
   const sortedEvents = [...events].sort((first, second) => {
     if (sortOrder === 'online-first' && first.mode !== second.mode) {
-      return first.mode.toLowerCase() === 'online' ? -1 : 1
+      return first.mode === 'Online' ? -1 : 1
     }
     if (sortOrder === 'offline-first' && first.mode !== second.mode) {
-      return first.mode.toLowerCase() !== 'online' ? -1 : 1
+      return first.mode === 'Offline' ? -1 : 1
     }
     return sortOrder === 'date-desc'
-      ? second.event_date.localeCompare(first.event_date)
-      : first.event_date.localeCompare(second.event_date)
+      ? second.date.localeCompare(first.date)
+      : first.date.localeCompare(second.date)
   })
 
   const startCreating = () => {
     setEditingId(null)
     setCreatingNew(true)
-    setDraft({ ...EMPTY_DRAFT })
+    setDraft({
+      id: 0,
+      name: '',
+      type: 'Hackathon',
+      date: '',
+      time: '',
+      mode: 'Online',
+      location: '',
+      organizer: '',
+    })
   }
 
   const startEditing = (event: EventItem) => {
     setCreatingNew(false)
     setEditingId(event.id)
-    setDraft(eventToDraft(event))
+    setDraft({ ...event })
   }
 
   const cancelEditing = () => {
@@ -174,47 +147,25 @@ export function EventsSection() {
     setDraft(null)
   }
 
-  const saveEditing = async () => {
-    if (!draft || !draft.name.trim() || !draft.organizer.trim() || !draft.application_url.trim()) return
-    const payload = draftToPayload(draft)
-    try {
-      if (creatingNew) {
-        const res = await fetch(`${API}/events`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        if (!res.ok) {
-          const err = await res.json()
-          throw new Error(err.detail ?? 'Failed to create event')
-        }
-      } else if (editingId) {
-        const res = await fetch(`${API}/events/${editingId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        if (!res.ok) {
-          const err = await res.json()
-          throw new Error(err.detail ?? 'Failed to update event')
-        }
-      }
-      cancelEditing()
-      fetchEvents()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong')
+  const saveEditing = () => {
+    if (!draft || !draft.name.trim() || !draft.organizer.trim()) return
+    if (creatingNew) {
+      setEvents((current) => {
+        const id = Math.max(0, ...current.map((event) => event.id)) + 1
+        return [...current, { ...draft, id }]
+      })
+    } else {
+      setEvents((current) =>
+        current.map((event) => (event.id === draft.id ? draft : event)),
+      )
     }
+    cancelEditing()
   }
 
-  const deleteEvent = async (id: number) => {
+  const deleteEvent = (id: number) => {
     if (!window.confirm('Delete this event?')) return
-    try {
-      await fetch(`${API}/events/${id}`, { method: 'DELETE' })
-      if (editingId === id) cancelEditing()
-      fetchEvents()
-    } catch {
-      setError('Failed to delete event')
-    }
+    setEvents((current) => current.filter((event) => event.id !== id))
+    if (editingId === id) cancelEditing()
   }
 
   return (
@@ -226,7 +177,7 @@ export function EventsSection() {
           <h1 className="section-h2">Events</h1>
           <div className="section-underline" aria-hidden="true" />
           <p className="section-body">
-            Browse and manage open-source community events for contributors.
+            Review and discover open-source community events published for contributors.
           </p>
         </div>
         <Button
@@ -239,14 +190,15 @@ export function EventsSection() {
         </Button>
       </div>
 
-      {error && (
-        <div className="flex items-center gap-2.5 rounded-lg border border-red-300/30 bg-red-50/10 px-4 py-2.5 text-xs text-red-400">
-          <span>{error}</span>
-          <button onClick={() => setError('')} className="ml-auto text-red-400 hover:text-red-300">
-            <X className="size-3.5" />
-          </button>
-        </div>
-      )}
+      {/* Placeholder / Demo Notice */}
+      <div className="flex items-center gap-2.5 rounded-lg border border-accent/20 bg-accent/5 px-4 py-2.5 text-xs text-muted-foreground">
+        <Badge variant="accent" className="shrink-0 text-[10px]">
+          Preview Mode
+        </Badge>
+        <span className="flex-1">
+          Demo events are stored in local browser state. Real-time community events backend API integration is coming soon.
+        </span>
+      </div>
 
       {/* Main Events Card */}
       <Card className="rounded-xl">
@@ -255,7 +207,7 @@ export function EventsSection() {
             <div>
               <CardTitle>EVENT LIST</CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
-                {loading ? 'Loading...' : `${events.length} ${events.length === 1 ? 'event' : 'events'} currently published.`}
+                {events.length} {events.length === 1 ? 'event' : 'events'} currently published.
               </p>
             </div>
             <CalendarDays className="size-5 text-accent-text" aria-hidden="true" />
@@ -293,7 +245,7 @@ export function EventsSection() {
             </select>
           </div>
 
-          {!loading && events.length === 0 ? (
+          {events.length === 0 ? (
             <EmptyState
               icon={CalendarDays}
               title="No events available"
@@ -323,43 +275,27 @@ export function EventsSection() {
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-base font-semibold">{displayName(event)}</h2>
+                        <h2 className="text-base font-semibold">{event.name}</h2>
                         <Badge variant="secondary" className="text-[10px]">
-                          {event.event_type}
+                          {event.type}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Organized by {displayOrganizer(event) || displayName(event)}
+                        Organized by {event.organizer}
                       </p>
-                      {displayDescription(event) && (
-                        <p className="text-xs text-muted-foreground/80">
-                          {displayDescription(event)}
-                        </p>
-                      )}
                       <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                           <CalendarDays className="size-3.5" aria-hidden="true" />
-                          {formatDate(event.event_date)} at {event.event_time.slice(0, 5)} IST
+                          {formatDate(event.date)} at {event.time} IST
                         </span>
                         <span className="flex items-center gap-1.5">
-                          {event.mode.toLowerCase() === 'online' ? (
+                          {event.mode === 'Online' ? (
                             <Monitor className="size-3.5 text-accent" aria-hidden="true" />
                           ) : (
                             <MapPin className="size-3.5 text-accent" aria-hidden="true" />
                           )}
-                          {event.mode.toLowerCase() === 'online' ? 'Online' : event.location ?? 'In-person'}
+                          {event.mode === 'Online' ? 'Online' : event.location}
                         </span>
-                        {event.application_url && (
-                          <a
-                            href={event.application_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-accent hover:underline"
-                          >
-                            <ExternalLink className="size-3" aria-hidden="true" />
-                            Apply
-                          </a>
-                        )}
                       </div>
                     </div>
 
@@ -369,7 +305,7 @@ export function EventsSection() {
                         variant="secondary"
                         size="sm"
                         onClick={() => startEditing(event)}
-                        aria-label={`Edit ${displayName(event)}`}
+                        aria-label={`Edit ${event.name}`}
                         className="gap-1.5"
                       >
                         <Edit3 className="size-3.5" aria-hidden="true" />
@@ -380,7 +316,7 @@ export function EventsSection() {
                         variant="outline"
                         size="sm"
                         onClick={() => deleteEvent(event.id)}
-                        aria-label={`Delete ${displayName(event)}`}
+                        aria-label={`Delete ${event.name}`}
                         className="gap-1.5 text-muted-foreground hover:border-accent/70 hover:text-accent-text"
                       >
                         <Trash2 className="size-3.5" aria-hidden="true" />
@@ -406,14 +342,14 @@ function EventEditor({
   heading,
   submitLabel,
 }: {
-  draft: EventDraft
-  onChange: (event: EventDraft) => void
+  draft: EventItem
+  onChange: (event: EventItem) => void
   onCancel: () => void
   onSave: () => void
   heading: string
   submitLabel: string
 }) {
-  const update = (field: keyof EventDraft, value: string) =>
+  const update = (field: keyof EventItem, value: string) =>
     onChange({ ...draft, [field]: value })
 
   return (
@@ -489,19 +425,6 @@ function EventEditor({
           </select>
         </div>
 
-        <div className="space-y-1.5 md:col-span-2">
-          <label className="text-xs font-mono font-medium text-muted-foreground">
-            Description
-          </label>
-          <textarea
-            className="input-field w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground transition-all duration-200 focus-visible:border-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            rows={2}
-            value={draft.description}
-            onChange={(event) => update('description', event.target.value)}
-            placeholder="Brief description of the event"
-          />
-        </div>
-
         <div className="space-y-1.5">
           <label className="text-xs font-mono font-medium text-muted-foreground">
             Date
@@ -570,19 +493,6 @@ function EventEditor({
             />
           </div>
         )}
-
-        <div className="space-y-1.5 md:col-span-2">
-          <label className="text-xs font-mono font-medium text-muted-foreground">
-            Application / Registration URL
-          </label>
-          <Input
-            type="url"
-            value={draft.application_url}
-            onChange={(event) => update('application_url', event.target.value)}
-            placeholder="https://example.com/register"
-            required
-          />
-        </div>
       </div>
 
       <div className="flex justify-end gap-2 border-t border-border pt-4">

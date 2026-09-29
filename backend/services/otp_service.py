@@ -1,92 +1,94 @@
-"""Service layer for OTP generation and verification."""
+"""Business logic for ephemeral OTP generation, storage, and consumption."""
 
-from __future__ import annotations
-
-import hashlib
-import hmac
 import secrets
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models.otp import OTP, OTPPurpose
-
-_OTP_HMAC_KEY = b"open-source-assist-otp-key"
-
-
-def _generate_otp() -> str:
-    return f"{secrets.randbelow(10**6):06d}"
+from backend.core.config import settings
+from backend.core.security import hash_otp, verify_otp
+from backend.models.otp_model import OTP, OTPPurpose
+from backend.services import mail_service
 
 
-def _hash_otp(otp: str) -> str:
-    return hmac.new(_OTP_HMAC_KEY, otp.encode(), hashlib.sha256).hexdigest()
+class OTPService:
+    """Manages short-lived OTP tokens in an ephemeral key-value pattern."""
 
+    @staticmethod
+    async def generate_and_store_otp(
+        db: AsyncSession,
+        email: str,
+        purpose: OTPPurpose,
+        payload: dict[str, Any] | None = None,
+    ) -> str:
+        """Generate a single-use 6-digit OTP, replace any pending OTP for this email/purpose, and send email."""
+        normalized_email = email.strip().lower()
 
-async def request_otp(
-    session: AsyncSession,
-    email: str,
-    purpose: OTPPurpose,
-    payload: dict | None = None,
-) -> str:
-    """Create or replace an OTP for the given email+purpose. Returns the plain OTP."""
-    otp_plain = _generate_otp()
-    otp_hash = _hash_otp(otp_plain)
-
-    existing = await session.execute(
-        select(OTP).where(OTP.email == email, OTP.purpose == purpose)
-    )
-    row = existing.scalar_one_or_none()
-
-    if row:
-        row.otp_hash = otp_hash
-        row.payload = payload
-    else:
-        session.add(OTP(email=email, purpose=purpose, otp_hash=otp_hash, payload=payload))
-
-    await session.commit()
-    return otp_plain
-
-
-async def verify_otp(
-    session: AsyncSession, email: str, purpose: OTPPurpose, otp: str
-) -> bool:
-    """Verify and consume an OTP. Returns True on success."""
-    otp_hash = _hash_otp(otp)
-
-    result = await session.execute(
-        select(OTP).where(
-            OTP.email == email,
-            OTP.purpose == purpose,
-            OTP.otp_hash == otp_hash,
+        # Delete any existing pending OTP for this email and purpose (KV replacement pattern)
+        await db.execute(
+            delete(OTP).where(OTP.email == normalized_email, OTP.purpose == purpose)
         )
-    )
-    row = result.scalar_one_or_none()
-    if not row:
-        return False
 
-    await session.delete(row)
-    await session.commit()
-    return True
+        otp = f"{secrets.randbelow(1_000_000):06d}"
+        expires_at = datetime.now(UTC) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
 
-
-async def verify_otp_with_payload(
-    session: AsyncSession, email: str, purpose: OTPPurpose, otp: str
-) -> dict | None:
-    """Verify and consume an OTP. Returns the stored payload or None on failure."""
-    otp_hash = _hash_otp(otp)
-
-    result = await session.execute(
-        select(OTP).where(
-            OTP.email == email,
-            OTP.purpose == purpose,
-            OTP.otp_hash == otp_hash,
+        otp_record = OTP(
+            email=normalized_email,
+            purpose=purpose,
+            otp_hash=hash_otp(otp),
+            payload=payload,
+            expires_at=expires_at,
         )
-    )
-    row = result.scalar_one_or_none()
-    if not row:
-        return None
+        db.add(otp_record)
+        await db.commit()
 
-    payload = row.payload
-    await session.delete(row)
-    await session.commit()
-    return payload or {}
+        # Dispatch notification
+        if purpose == OTPPurpose.SIGNUP_VERIFICATION:
+            await mail_service.send_signup_verification_otp(normalized_email, otp)
+        elif purpose == OTPPurpose.RESET_PASSWORD:
+            await mail_service.send_password_reset_otp(normalized_email, otp)
+
+        return otp
+
+    @staticmethod
+    async def verify_and_consume_otp(
+        db: AsyncSession,
+        email: str,
+        purpose: OTPPurpose,
+        submitted_otp: str,
+    ) -> dict[str, Any]:
+        """Verify the OTP against the stored HMAC. If valid, deletes the record and returns payload."""
+        normalized_email = email.strip().lower()
+        clean_otp = submitted_otp.strip()
+        now = datetime.now(UTC)
+
+        record = await db.scalar(
+            select(OTP).where(
+                OTP.email == normalized_email,
+                OTP.purpose == purpose,
+            )
+        )
+
+        if record is None:
+            raise ValueError("No pending verification request found for this email. Please request a new code.")
+
+        # Check expiration
+        expires_at = record.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+
+        if expires_at <= now:
+            await db.delete(record)
+            await db.commit()
+            raise ValueError("Verification code has expired. Please request a new code.")
+
+        if not verify_otp(clean_otp, record.otp_hash):
+            raise ValueError("Incorrect verification code. Please check your email and try again.")
+
+        payload = record.payload or {}
+        # Single-use: delete consumed OTP
+        await db.delete(record)
+        await db.commit()
+        return payload

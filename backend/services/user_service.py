@@ -8,7 +8,7 @@ import bcrypt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models.user import User
+from backend.models.user_model import User
 from backend.schemas.users import UserCreate, UserUpdate
 
 

@@ -1,16 +1,26 @@
 """Schemas package exports."""
 
-from backend.schemas.search import (
-    RepoSearchFilter,
-    RepoSearchRequest,
-    RepoScoreBreakdown,
-    RepoItem,
-    RepoSearchResponse,
+from backend.schemas.auth import (
+    AuthResponse,
+    ForgotPasswordRequest,
+    LoginRequest,
+    MessageResponse,
+    ResetPasswordRequest,
+    SignupRequest,
+    TokenResponse,
+    VerifySignupOTPRequest,
 )
 from backend.schemas.ingest import (
-    RepoIngestItem,
     BatchRepoIngestRequest,
     BatchRepoIngestResponse,
+    RepoIngestItem,
+)
+from backend.schemas.search import (
+    RepoItem,
+    RepoScoreBreakdown,
+    RepoSearchFilter,
+    RepoSearchRequest,
+    RepoSearchResponse,
 )
 from backend.schemas.learning import (
     SkillLevel,
@@ -20,6 +30,13 @@ from backend.schemas.learning import (
     LearningMaterialRequest,
     LearningMaterialResponse,
     StructuredAgentOutput,
+)
+from backend.schemas.chatbot import (
+    UserSkillProfile,
+    CodeSnippet,
+    ChatbotRequest,
+    StructuredChatbotOutput,
+    ChatbotResponse,
 )
 from backend.schemas.github import (
     ProjectResponse,
@@ -58,14 +75,22 @@ from backend.schemas.roadmaps import (
 )
 
 __all__ = [
-    "RepoSearchFilter",
-    "RepoSearchRequest",
-    "RepoScoreBreakdown",
-    "RepoItem",
-    "RepoSearchResponse",
-    "RepoIngestItem",
+    "AuthResponse",
     "BatchRepoIngestRequest",
     "BatchRepoIngestResponse",
+    "ForgotPasswordRequest",
+    "LoginRequest",
+    "MessageResponse",
+    "RepoIngestItem",
+    "RepoItem",
+    "RepoScoreBreakdown",
+    "RepoSearchFilter",
+    "RepoSearchRequest",
+    "RepoSearchResponse",
+    "ResetPasswordRequest",
+    "SignupRequest",
+    "TokenResponse",
+    "VerifySignupOTPRequest",
     "SkillLevel",
     "MaterialType",
     "CitedMaterial",
@@ -73,6 +98,11 @@ __all__ = [
     "LearningMaterialRequest",
     "LearningMaterialResponse",
     "StructuredAgentOutput",
+    "UserSkillProfile",
+    "CodeSnippet",
+    "ChatbotRequest",
+    "StructuredChatbotOutput",
+    "ChatbotResponse",
     "ProjectResponse",
     "ContributorResponse",
     "SyncResponse",
@@ -99,5 +129,3 @@ __all__ = [
     "ProgressUpdate",
     "RoadmapProgressSummary",
 ]
-
-

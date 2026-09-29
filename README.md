@@ -4,6 +4,32 @@ Welcome to the comprehensive technical documentation for the **Open Source Assis
 
 This module provides an asynchronous, high-throughput semantic search engine that indexes open-source software repositories into **Qdrant Vector Database** and re-ranks results using a **Multiplicative Gate** popularity weighting algorithm.
 
+## ⚡ Quick Start
+
+To start all services (PostgreSQL migration check, FastAPI backend, and Vite frontend) with a single command:
+
+**Windows (PowerShell):**
+```powershell
+.\start.ps1
+```
+
+**Windows (Command Prompt / Double Click):**
+```cmd
+start.bat
+```
+
+To stop all running services:
+```powershell
+.\stop.ps1
+# or
+stop.bat
+```
+
+Services started:
+* **Frontend UI**: [http://localhost:5173](http://localhost:5173)
+* **Backend API & Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Backend Health**: [http://localhost:8000/health](http://localhost:8000/health)
+
 ---
 
 ## 📚 Documentation Index
@@ -35,4 +61,22 @@ This module provides an asynchronous, high-throughput semantic search engine tha
   * Routers contain zero business logic.
   * Pydantic v2 models with explicit `Field` documentation for OpenAPI contract generation.
   * Built-in health check and cluster readiness probes.
+
+## Authentication
+
+The backend includes PostgreSQL-backed authentication routes under the versioned API prefix:
+
+* `POST /api/v1/auth/signup`
+* `POST /api/v1/auth/login`
+* `POST /api/v1/auth/forgot-password`
+* `POST /api/v1/auth/reset-password`
+
+Copy `.env.example` to `.env`, set `DATABASE_URL` and a long random `JWT_SECRET_KEY`, then apply the schema migration with:
+
+```powershell
+uv run alembic upgrade head
+uv run uvicorn backend.main:app --reload
+```
+
+Reset codes expire after five minutes, are persisted as HMAC digests, and are single-use. Email delivery is currently represented by the mock mailer in `backend/scripts/mailer.py`.
 
