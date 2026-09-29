@@ -14,10 +14,15 @@ interface DialogProps {
   children: React.ReactNode
   /** Accessible name for the dialog. */
   ariaLabel: string
+  /**
+   * Optional custom header text. Defaults to the auth terminal prompt
+   * (`$ osa auth --interactive`) when omitted.
+   */
+  title?: string
   className?: string
 }
 
-export function Dialog({ open, onClose, children, ariaLabel, className }: DialogProps) {
+export function Dialog({ open, onClose, children, ariaLabel, title, className }: DialogProps) {
   const panelRef = React.useRef<HTMLDivElement>(null)
   const previouslyFocused = React.useRef<HTMLElement | null>(null)
 
@@ -88,7 +93,9 @@ export function Dialog({ open, onClose, children, ariaLabel, className }: Dialog
       >
         {/* Terminal-style header bar, same pattern as the Hero terminal mock */}
         <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-2">
-          <span className="font-mono text-xs text-muted-foreground">$ osa auth --interactive</span>
+          <span className="font-mono text-xs text-muted-foreground">
+            {title ?? '$ osa auth --interactive'}
+          </span>
           <button
             type="button"
             onClick={onClose}

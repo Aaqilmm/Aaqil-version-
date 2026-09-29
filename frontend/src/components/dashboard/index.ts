@@ -1,3 +1,4 @@
 export { default as EventsSection } from './EventsSection'
 export * from './EventsSection'
 export { ExploreSection } from './ExploreSection'
+export { RedeemSection } from './RedeemSection'

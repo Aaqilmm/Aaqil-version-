@@ -25,7 +25,7 @@ import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Empt
 import { useAuthStore } from '@/lib/auth-store'
 import { cn } from '@/lib/utils'
 import { RoadmapPage } from '@/components/roadmap/RoadmapPage'
-import { EventsSection, ExploreSection } from '@/components/dashboard'
+import { EventsSection, ExploreSection, RedeemSection } from '@/components/dashboard'
 import { LearningSection } from '@/components/learning'
 
 interface DashboardPageProps {
@@ -358,6 +358,8 @@ export default function DashboardPage({ onLogout }: DashboardPageProps) {
             <ExploreSection />
           ) : section === 'events' ? (
             <EventsSection />
+          ) : section === 'redeem' ? (
+            <RedeemSection />
           ) : (
             <BlankModule id={section} />
           )}
